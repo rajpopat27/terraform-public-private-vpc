@@ -1,6 +1,23 @@
 data "aws_availability_zones" "az" {
   state = "available"
 }
+data "aws_ami" "ubuntu" {
+  owners      = ["099720109477"]
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64*"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+}
 
 locals {
   count = lookup(var.az_count_env, var.env, 1)
@@ -162,4 +179,14 @@ resource "aws_security_group" "private_sg" {
   }
 }
 
+resource "aws_instance" "bastionHost" {
+  ami               = data.aws_ami.ubuntu.id
+  availability_zone = data.aws_availability_zones.az.names[0]
+  instance_type     = "t2.micro"
+  key_name          = var.key_name
+  security_groups   = [aws_security_group.public_sg.id]
+  subnet_id         = aws_subnet.public[0].id
+  tags              = merge(map("Bastion", "True"), local.tags)
+
+}
 

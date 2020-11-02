@@ -74,3 +74,9 @@ variable "cluster_name" {
   description = "cluster name"
   default     = "kubernetes"
 }
+
+variable "key_name" {
+  type        = string
+  description = "(optional) describe your variable"
+  default     = "frankfurt-keypair-root"
+}
