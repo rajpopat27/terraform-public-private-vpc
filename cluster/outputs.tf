@@ -7,3 +7,6 @@ output "worker_ips" {
 output "elb_dns" {
   value = module.cluster.elb_dns
 }
+output "bastion_ip" {
+  value = data.terraform_remote_state.vpc.outputs.bastion_ip
+}

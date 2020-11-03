@@ -32,8 +32,9 @@ resource "aws_vpc" "main_vpc" {
 }
 
 resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main_vpc.id
-  tags   = local.tags
+  vpc_id     = aws_vpc.main_vpc.id
+  tags       = local.tags
+  depends_on = [aws_vpc.main_vpc]
 }
 
 resource "aws_subnet" "public" {
@@ -43,19 +44,20 @@ resource "aws_subnet" "public" {
   availability_zone       = data.aws_availability_zones.az.names[count.index]
   map_public_ip_on_launch = true
   tags                    = local.tags
+  depends_on              = [aws_internet_gateway.gw]
 }
 
 resource "aws_route_table" "public" {
-  vpc_id     = aws_vpc.main_vpc.id
-  depends_on = [aws_internet_gateway.gw]
-  tags       = local.tags
+  vpc_id = aws_vpc.main_vpc.id
+  tags   = local.tags
+
 }
 
 resource "aws_route" "public" {
   route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.gw.id
-
+  depends_on             = [aws_internet_gateway.gw]
   lifecycle {
     create_before_destroy = true
   }
@@ -66,6 +68,7 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
   lifecycle {
+    ignore_changes        = [subnet_id, route_table_id]
     create_before_destroy = true
   }
 }
@@ -77,6 +80,7 @@ resource "aws_subnet" "private" {
   availability_zone       = data.aws_availability_zones.az.names[count.index]
   map_public_ip_on_launch = false
   tags                    = local.tags
+  depends_on              = [aws_nat_gateway.nat_gw]
 }
 
 resource "aws_eip" "nat_eip" {
@@ -90,6 +94,10 @@ resource "aws_nat_gateway" "nat_gw" {
   allocation_id = aws_eip.nat_eip[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
   tags          = local.tags
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [subnet_id, tags]
+  }
 }
 
 resource "aws_route_table" "private" {
@@ -102,9 +110,10 @@ resource "aws_route" "private" {
   route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.nat_gw[count.index].id
-
+  depends_on             = [aws_nat_gateway.nat_gw]
   lifecycle {
     create_before_destroy = true
+    ignore_changes        = [route_table_id, nat_gateway_id]
   }
 }
 
@@ -114,6 +123,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
   lifecycle {
     create_before_destroy = true
+    ignore_changes        = [subnet_id]
   }
 }
 
@@ -128,7 +138,7 @@ resource "aws_security_group" "public_sg" {
     content {
       from_port   = port.value
       to_port     = port.value
-      protocol    = "tcp"
+      protocol    = "-1"
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
@@ -146,6 +156,7 @@ resource "aws_security_group" "public_sg" {
   lifecycle {
     create_before_destroy = true
   }
+
 }
 
 resource "aws_security_group" "private_sg" {
@@ -173,20 +184,35 @@ resource "aws_security_group" "private_sg" {
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
-  tags = local.tags
+  tags       = local.tags
+  depends_on = [aws_security_group.public_sg]
   lifecycle {
     create_before_destroy = true
   }
 }
 
 resource "aws_instance" "bastionHost" {
-  ami               = data.aws_ami.ubuntu.id
-  availability_zone = data.aws_availability_zones.az.names[0]
-  instance_type     = "t2.micro"
-  key_name          = var.key_name
-  security_groups   = [aws_security_group.public_sg.id]
-  subnet_id         = aws_subnet.public[0].id
-  tags              = merge(map("Bastion", "True"), local.tags)
+  ami                    = data.aws_ami.ubuntu.id
+  availability_zone      = data.aws_availability_zones.az.names[0]
+  instance_type          = "t2.micro"
+  key_name               = var.key_name
+  vpc_security_group_ids = [aws_security_group.public_sg.id]
+  subnet_id              = aws_subnet.public[0].id
+  tags                   = merge(map("Bastion", "True"), local.tags)
+  lifecycle {
+    ignore_changes = [tags]
+  }
 
 }
+
+resource "aws_eip" "bastion_eip" {
+  vpc  = true
+  tags = local.tags
+}
+
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = aws_instance.bastionHost.id
+  allocation_id = aws_eip.bastion_eip.id
+}
+
 

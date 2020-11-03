@@ -27,27 +27,33 @@ locals {
 }
 
 resource "aws_instance" "master" {
-  count                = var.instance_count_env[var.env].master_instance_count
-  ami                  = var.master_ami
-  availability_zone    = data.aws_availability_zones.az.names[count.index % local.count]
-  instance_type        = var.instance_type_env[var.env].master_instance_type
-  key_name             = var.key_name
-  security_groups      = var.private_sg_id
-  subnet_id            = var.private_subnet_id[count.index % local.count]
-  iam_instance_profile = var.master_iam_role
-  tags                 = local.tags
+  count                  = var.instance_count_env[var.env].master_instance_count
+  ami                    = var.master_ami
+  availability_zone      = data.aws_availability_zones.az.names[count.index % local.count]
+  instance_type          = var.instance_type_env[var.env].master_instance_type
+  key_name               = var.key_name
+  vpc_security_group_ids = var.private_sg_id
+  subnet_id              = var.private_subnet_id[count.index % local.count]
+  iam_instance_profile   = var.master_iam_role
+  tags                   = local.tags
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 resource "aws_instance" "worker" {
-  count                = var.instance_count_env[var.env].worker_instance_count
-  ami                  = var.worker_ami
-  availability_zone    = data.aws_availability_zones.az.names[count.index % local.count]
-  instance_type        = var.instance_type_env[var.env].worker_instance_type
-  key_name             = var.key_name
-  security_groups      = var.private_sg_id
-  subnet_id            = var.private_subnet_id[count.index % local.count]
-  iam_instance_profile = var.worker_iam_role
-  tags                 = local.tags
+  count                  = var.instance_count_env[var.env].worker_instance_count
+  ami                    = var.worker_ami
+  availability_zone      = data.aws_availability_zones.az.names[count.index % local.count]
+  instance_type          = var.instance_type_env[var.env].worker_instance_type
+  key_name               = var.key_name
+  vpc_security_group_ids = var.private_sg_id
+  subnet_id              = var.private_subnet_id[count.index % local.count]
+  iam_instance_profile   = var.worker_iam_role
+  tags                   = local.tags
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 resource "aws_elb" "public_lb" {
