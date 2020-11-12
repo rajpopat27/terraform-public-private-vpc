@@ -99,7 +99,7 @@ variable "key_name" {
 variable "cluster_name" {
   type        = string
   description = "cluster name"
-  default     = terraform.workspace
+  default     = "kubernetes"
 }
 
 variable "default_tags" {
@@ -117,9 +117,9 @@ variable "kubernetes_tags" {
 }
 
 variable "nfs" {
-  type        = bool
-  description = "is nfs required ot not"
-  default     = false
+  type        = number
+  description = "is nfs required or not"
+  default     = 0
 }
 
 variable "nfs_ami" {
@@ -130,13 +130,21 @@ variable "nfs_ami" {
 #Variables from the output of vpc
 
 variable "private_sg_id" {
+  type    = string
+  default = ""
 }
 
 variable "private_subnet_id" {
+  type    = string
+  default = ""
 }
 
 variable "public_sg_id" {
+  type    = string
+  default = ""
 }
 
 variable "public_subnet_id" {
+  type    = string
+  default = ""
 }

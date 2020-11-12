@@ -15,8 +15,8 @@ module "cluster" {
 }
 
 resource "aws_instance" "nfsServer" {
-  count         = var.nfs ? 1 : 0
+  count         = var.nfs
   ami           = var.nfs_ami
   instance_type = "t2.micro"
-  tags          = merge(map("dns", var.cluster_name), var.tags)
+  tags          = merge(map("dns", var.cluster_name), var.default_tags)
 }

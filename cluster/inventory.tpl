@@ -1,23 +1,24 @@
-[${terraform.workspace}Masters]
+[${clusterName}Masters]
 %{for index, ip in master_ips ~}
-${terraform.workspace}masterNode${index} ansible_host=${ip}
+${clusterName}masterNode${index} ansible_host=${ip}
 %{ endfor ~}
 
-[${terraform.workspace}Workers]
+[${clusterName}Workers]
 %{for index, ip in worker_ips ~}
-${terraform.workspace}workerNode${index} ansible_host=${ip}
+${clusterName}workerNode${index} ansible_host=${ip}
 %{ endfor ~}
 
-${~ if var.nfs>0 ~}
-[${terraform.workspace}nfsServer]
-${terraform.workspace}nfs ansible_host=${terraform.workspace}.cboitistcs.com
+%{~ if nfs>0 ~}
+[${clusterName}nfsServer]
+${clusterName}nfs ansible_host=${clusterName}.cboitistcs.com
+%{ endif  }
 
-[${terraform.workspace}:children]
-${terraform.workspace}Masters
-${terraform.workspace}Workers
-${terraform.workspace}nfsServer
+[${clusterName}:children]
+${clusterName}Masters
+${clusterName}Workers
+${clusterName}nfsServer
 
-[${terraform.workspace}:vars]
+[${clusterName}:vars]
 ansible_user= ubuntu
 ansible_python_interpreter=/usr/bin/python3
 
